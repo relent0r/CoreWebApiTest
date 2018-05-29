@@ -1,0 +1,43 @@
+stages:
+  - build-dotnet
+  - build-docker
+
+image: docker:git
+
+
+publish dotnet:
+  stage: build-dotnet
+  image: microsoft/dotnet:latest
+  services:
+    - docker:dind
+  tags:
+    - .net
+  before_script:
+    - echo '192.168.0.50 kubemaster01.devops.local' >> /etc/hosts
+    - cat /etc/hosts
+  script:
+    - dotnet publish CoreWebApiTest/CoreWebApiTest.csproj -c Release
+    - ls /builds/root/webapitest/CoreWebApiTest/bin/Release/netcoreapp2.0/publish/
+  artifacts:
+         expire_in: 12 hrs
+         paths:
+          - /builds/root/webapitest/CoreWebApiTest/bin/Release/netcoreapp2.0/publish/
+
+Build Docker:
+  stage: build-docker
+  dependencies: 
+    - publish dotnet
+  services:
+    - docker:dind
+  before_script:
+    - docker info
+  script:
+    - mkdir CoreWebApiTest/publish
+    - cp -r /builds/root/webapitest/CoreWebApiTest/bin/Release/netcoreapp2.0/publish/ CoreWebApiTest/publish/
+    - cat /etc/hosts
+    - docker build CoreWebApiTest/ -t webapi
+    - docker images
+    - ping gitlab01.devops.local -c 1
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab01.devops.local:4567
+  
+
