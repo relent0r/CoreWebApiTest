@@ -1,8 +1,0 @@
-version: '3'
-
-services:
-  corewebapitest:
-    image: corewebapitest
-    build:
-      context: .
-      dockerfile: CoreWebApiTest\Dockerfile
