@@ -13,4 +13,4 @@ build-docker uses the docker:dind service to build the container using the aspne
 
 TODO
 
-remove testing commands, add logging during stages, add kubernetes pod build, add kuberentes ingress build, add vCloud NSX Edge configuration script.
+complete the registry push(gotta get my ssl config sorted on the registry), remove testing commands, add logging during stages, add kubernetes pod build, add kuberentes ingress build, add vCloud NSX Edge configuration script.
