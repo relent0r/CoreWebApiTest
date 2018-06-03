@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: corewebapi-__CI_JOB_ID__
+  labels:
+    app: reveraapi
+spec:
+  containers:
+    - name: corewebapi-__CI_JOB_ID__
+      image: relent0r/corewebapi:prod
+      imagePullPolicy: Always
+      ports:
+      - containerPort: 80
+        name: http
+        protocol: TCP
