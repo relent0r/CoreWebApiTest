@@ -1,0 +1,14 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations: {}
+  name: corewebapi-ingress-__CI_JOB_ID__
+  namespace: gitlabci01
+spec:
+  backend:
+    serviceName: corewebapi-__CI_JOB_ID__
+    servicePort: 80
+  http: 
+  rules:
+  - host: site-__CI_JOB_ID__.devops.local
