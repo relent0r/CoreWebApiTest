@@ -8,4 +8,4 @@ spec:
     - port: 80
       nodePort: 30080
   selector:
-    app: reveraapi
+    app: reveraapi-__CI_JOB_ID__
