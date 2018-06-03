@@ -3,7 +3,7 @@ kind: Pod
 metadata:
   name: corewebapi-__CI_JOB_ID__
   labels:
-    app: reveraapi
+    app: reveraapi-__CI_JOB_ID__
 spec:
   containers:
     - name: corewebapi-__CI_JOB_ID__
