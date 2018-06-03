@@ -1,6 +1,7 @@
 stages:
   - build-dotnet
   - build-docker
+  - deploy
 
 image: docker:git
 
@@ -18,6 +19,7 @@ publish dotnet:
   script:
     - dotnet publish CoreWebApiTest/CoreWebApiTest.csproj -c Release
     - ls /builds/root/webapitest/CoreWebApiTest/bin/Release/netcoreapp2.0/publish/
+    - echo "Job ID $CI_JOB_ID"
   artifacts:
          expire_in: 12 hrs
          paths:
@@ -31,13 +33,38 @@ Build Docker:
     - docker:dind
   before_script:
     - docker info
+    - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
   script:
     - mkdir CoreWebApiTest/publish
     - cp -r /builds/root/webapitest/CoreWebApiTest/bin/Release/netcoreapp2.0/publish/ CoreWebApiTest/publish/
-    - cat /etc/hosts
     - docker build CoreWebApiTest/ -t webapi
+    - docker tag webapi $DOCKER_IMAGE
     - docker images
-    - ping gitlab01.devops.local -c 1
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN gitlab01.devops.local:4567
+    - docker push $DOCKER_IMAGE
+    - echo "Job ID $CI_JOB_ID"
+  
+Deploy:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add -U openssl curl tar gzip bash ca-certificates git
+    - wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://raw.githubusercontent.com/sgerrand/alpine-pkg-glibc/master/sgerrand.rsa.pub
+    - wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.23-r3/glibc-2.23-r3.apk
+    - apk add glibc-2.23-r3.apk
+    - rm glibc-2.23-r3.apk
+    - curl -L -o /usr/bin/kubectl "https://storage.googleapis.com/kubernetes-release/release/v${KUBERNETES_VERSION}/bin/linux/amd64/kubectl"
+    - chmod +x /usr/bin/kubectl
+  script:
+    - ls
+    - kubectl version --client
+    - kubectl config set-cluster kubecluster --certificate-authority=Certificates/ca.pem --embed-certs=true --server=https://$KUBE_SERVER
+    - kubectl config set-credentials admin --client-certificate=Certificates/admin.pem --client-key=Certificates/admin-key.pem
+    - kubectl config set-context kubecluster --cluster=kubecluster --user=admin
+    - kubectl config use-context kubecluster
+    - kubectl get componentstatuses
+    - sed -i "s/__CI_JOB_ID__/${CI_JOB_ID}/" manifest/corewebapi-pod.yml manifest/corewebapi-service.yml
+    - kubectl create -f manifest/corewebapi-pod.yml -n $PROJECT_NAMESPACE
+    - kubectl create -f manifest/corewebapi-service.yml -n $PROJECT_NAMESPACE
+
   
 
