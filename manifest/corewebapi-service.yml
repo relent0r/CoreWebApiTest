@@ -1,0 +1,11 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: corewebapi-__CI_JOB_ID__
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+      nodePort: 30080
+  selector:
+    app: reveraapi
