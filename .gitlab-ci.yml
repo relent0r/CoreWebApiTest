@@ -62,9 +62,9 @@ Deploy:
     - kubectl config set-context kubecluster --cluster=kubecluster --user=admin
     - kubectl config use-context kubecluster
     - kubectl get componentstatuses
-    - sed -i "s/__CI_JOB_ID__/${CI_JOB_ID}/" manifest/corewebapi-pod.yml manifest/corewebapi-service.yml
-    - kubectl create -f manifest/corewebapi-pod.yml -n $PROJECT_NAMESPACE
-    - kubectl create -f manifest/corewebapi-service.yml -n $PROJECT_NAMESPACE
-
-  
-
+    - sed -i "s/__CI_JOB_ID__/${CI_JOB_ID}/" kubemanifest/corewebapi-pod.yml kubemanifest/corewebapi-service.yml kubemanifest/corewebapi-ingress.yml
+    - kubectl create -f kubemanifest/corewebapi-pod.yml -n $PROJECT_NAMESPACE
+    - kubectl create -f kubemanifest/corewebapi-service.yml -n $PROJECT_NAMESPACE
+    - kubectl apply -f kubemanifest/corewebapi-ingress.yml -n $PROJECT_NAMESPACE
+    - kubectl describe ingress corewebapi-ingress-$CI_JOB_ID -n $PROJECT_NAMESPACE
+    - echo "URL IS HTTP://site-${CI_JOB_ID}.devops.local/api/values"
