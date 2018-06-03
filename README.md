@@ -18,4 +18,4 @@ deploy uses the alpine container which downloads a version of kubectl based on a
 
 TODO
 
-complete the registry push(gotta get my ssl config sorted on the registry), remove testing commands, add logging during stages, add vCloud NSX Edge configuration script.
+complete the registry push(gotta get my ssl config sorted on the registry), remove testing commands, add logging during stages, add vCloud NSX Edge configuration script. Add a more secure way of getting client certificates for kube config.
