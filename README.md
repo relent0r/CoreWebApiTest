@@ -1,7 +1,8 @@
 # CoreWebApiTest
 .net core gitlab ci build
 
-pre-req : I have an nsx edge with a load balancer thats sending all port 80 traffic to the ingress controllers for external connectivity.
+pre-req - I have an nsx edge with a load balancer thats sending all port 80 traffic to the ingress controllers for external connectivity.
+        - I have an nginx ingress controller in its own namespace which provides ingress to pods.
 
 This is a test web api built to test gitlab CI using the docker executor
 
