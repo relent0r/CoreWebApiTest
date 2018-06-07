@@ -52,8 +52,6 @@ Build Docker:
     - echo "### CREATE IMAGE USING DOCKER FILE IN REPO"
     - echo $CI_REGISTRY
     - echo $CI_REGISTRY_IMAGE
-    - echo $CI_REGISTRY_USER
-    - echo $CI_REGISTRY_PASSWORD
     - docker build CoreWebApiTest/ -t $CI_REGISTRY_IMAGE
     - docker images
     - echo "### PUSH DOCKER FILE TO GITHUB"
