@@ -3,9 +3,6 @@ stages:
   - build-docker
   - deploy
 
-image: docker:git
-
-
 publish dotnet:
   stage: build-dotnet
   image: microsoft/dotnet:latest
@@ -14,57 +11,84 @@ publish dotnet:
   tags:
     - .net
   before_script:
-    - echo '192.168.0.50 kubemaster01.devops.local' >> /etc/hosts
+    - echo "Validate Host File Configuration"
     - cat /etc/hosts
   script:
+    - echo "### STARTING .NET CORE BUILD"
     - dotnet publish CoreWebApiTest/CoreWebApiTest.csproj -c Release
-    - ls /builds/root/webapitest/CoreWebApiTest/bin/Release/netcoreapp2.0/publish/
+    - ls /builds/root/$CI_PROJECT_NAME/CoreWebApiTest/bin/Release/netcoreapp2.0/publish/
     - echo "Job ID $CI_JOB_ID"
+    - echo "### BUILD BINARIES WILL BE UPLOADED AS ARTIFACTS"
   artifacts:
          expire_in: 12 hrs
          paths:
-          - /builds/root/webapitest/CoreWebApiTest/bin/Release/netcoreapp2.0/publish/
+          - /builds/root/$CI_PROJECT_NAME/CoreWebApiTest/bin/Release/netcoreapp2.0/publish/
 
 Build Docker:
   stage: build-docker
   dependencies: 
     - publish dotnet
   services:
-    - docker:dind
+  - name: docker:dind
+    command:
+      - /bin/sh
+      - -c
+      - |
+          mkdir -p /etc/docker/certs.d/gitlab01.devops.local:4567
+          wget -O - http://192.168.0.54/ca.crt > /etc/docker/certs.d/gitlab01.devops.local\:4567/ca.crt || exit
+          echo "192.168.0.100   gitlab01.devops.local" >> /etc/hosts
+          dockerd-entrypoint.sh || exit
   before_script:
+    - echo "### VALIDATE DOCKER VERSION"
     - docker info
-    - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+    - echo "### Validate Hosts"
+    - cat /etc/hosts
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
+    - hostname
+    - echo "### MOVE BINARIES TO ACCESSABLE DOCKER LOCATION"
     - mkdir CoreWebApiTest/publish
-    - cp -r /builds/root/webapitest/CoreWebApiTest/bin/Release/netcoreapp2.0/publish/ CoreWebApiTest/publish/
-    - docker build CoreWebApiTest/ -t webapi
-    - docker tag webapi $DOCKER_IMAGE
+    - cp -r /builds/root/$CI_PROJECT_NAME/CoreWebApiTest/bin/Release/netcoreapp2.0/publish/ CoreWebApiTest/publish/
+    - echo "### CREATE IMAGE USING DOCKER FILE IN REPO"
+    - echo $CI_REGISTRY
+    - echo $CI_REGISTRY_IMAGE
+    - echo $CI_REGISTRY_USER
+    - echo $CI_REGISTRY_PASSWORD
+    - docker build CoreWebApiTest/ -t $CI_REGISTRY_IMAGE
     - docker images
-    - docker push $DOCKER_IMAGE
+    - echo "### PUSH DOCKER FILE TO GITHUB"
+    - docker push $CI_REGISTRY_IMAGE:latest
     - echo "Job ID $CI_JOB_ID"
   
 Deploy:
   stage: deploy
   image: alpine:latest
   before_script:
-    - apk add -U openssl curl tar gzip bash ca-certificates git
-    - wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://raw.githubusercontent.com/sgerrand/alpine-pkg-glibc/master/sgerrand.rsa.pub
-    - wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.23-r3/glibc-2.23-r3.apk
-    - apk add glibc-2.23-r3.apk
-    - rm glibc-2.23-r3.apk
+    - apk add -U curl bash
     - curl -L -o /usr/bin/kubectl "https://storage.googleapis.com/kubernetes-release/release/v${KUBERNETES_VERSION}/bin/linux/amd64/kubectl"
     - chmod +x /usr/bin/kubectl
   script:
     - ls
+    - echo "### CONFIGURE KUBE CONFIG"
     - kubectl version --client
     - kubectl config set-cluster kubecluster --certificate-authority=Certificates/ca.pem --embed-certs=true --server=https://$KUBE_SERVER
     - kubectl config set-credentials admin --client-certificate=Certificates/admin.pem --client-key=Certificates/admin-key.pem
     - kubectl config set-context kubecluster --cluster=kubecluster --user=admin
     - kubectl config use-context kubecluster
     - kubectl get componentstatuses
+    - echo "### Create Registry Secret"
+    - kubectl create secret docker-registry $CI_PROJECT_NAME-$CI_PIPELINE_ID --docker-server=$CI_REGISTRY --docker-username=$CI_REGISTRY_USER --docker-password=$CI_REGISTRY_PASSWORD --docker-email=$GITLAB_USER_EMAIL -n $PROJECT_NAMESPACE
+    - echo "### UPDATE KUBERNETES MANIFEST FILES WITH PROJECT VARIABLES"
     - sed -i "s/__CI_JOB_ID__/${CI_JOB_ID}/" kubemanifest/corewebapi-pod.yml kubemanifest/corewebapi-service.yml kubemanifest/corewebapi-ingress.yml
+    - sed -i "s/__CI_PROJECT_NAME__/${CI_PROJECT_NAME}/" kubemanifest/corewebapi-pod.yml kubemanifest/corewebapi-service.yml kubemanifest/corewebapi-ingress.yml
+    - sed -i "s/__CI_PIPELINE_ID__/${CI_PIPELINE_ID}/" kubemanifest/corewebapi-pod.yml kubemanifest/corewebapi-service.yml kubemanifest/corewebapi-ingress.yml
+    - sed -i "s%__CI_REGISTRY_IMAGE__%${CI_REGISTRY_IMAGE}%" kubemanifest/corewebapi-pod.yml
+    - echo "### CREATE PROJECT KUBERNETES OBJECTS"
     - kubectl create -f kubemanifest/corewebapi-pod.yml -n $PROJECT_NAMESPACE
     - kubectl create -f kubemanifest/corewebapi-service.yml -n $PROJECT_NAMESPACE
     - kubectl apply -f kubemanifest/corewebapi-ingress.yml -n $PROJECT_NAMESPACE
-    - kubectl describe ingress corewebapi-ingress-$CI_JOB_ID -n $PROJECT_NAMESPACE
-    - echo "URL IS HTTP://site-${CI_JOB_ID}.devops.local/api/values"
+    - kubectl describe pods $CI_PROJECT_NAME-$CI_PIPELINE_ID -n $PROJECT_NAMESPACE
+    - kubectl describe service $CI_PROJECT_NAME-$CI_PIPELINE_ID -n $PROJECT_NAMESPACE
+    - kubectl describe ingress $CI_PROJECT_NAME-ingress-$CI_PIPELINE_ID -n $PROJECT_NAMESPACE
+    - echo "URL IS http://site-$CI_PIPELINE_ID.devops.local/api/values"
+    
