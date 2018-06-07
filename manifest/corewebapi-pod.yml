@@ -1,15 +1,17 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: corewebapi-__CI_JOB_ID__
+  name: __CI_PROJECT_NAME__-__CI_PIPELINE_ID__
   labels:
-    app: reveraapi-__CI_JOB_ID__
+    app: reveraapi-__CI_PIPELINE_ID__
 spec:
   containers:
-    - name: corewebapi-__CI_JOB_ID__
-      image: relent0r/corewebapi:prod
+    - name: __CI_PROJECT_NAME__-__CI_PIPELINE_ID__
+      image: __CI_REGISTRY_IMAGE__
       imagePullPolicy: Always
       ports:
       - containerPort: 80
         name: http
         protocol: TCP
+  imagePullSecrets:
+    - name: __CI_PROJECT_NAME__-__CI_PIPELINE_ID__
