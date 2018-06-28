@@ -52,6 +52,8 @@ Build Docker:
     - echo "### CREATE IMAGE USING DOCKER FILE IN REPO"
     - echo $CI_REGISTRY
     - echo $CI_REGISTRY_IMAGE
+    - echo $CI_REGISTRY_USER
+    - echo $CI_REGISTRY_PASSWORD
     - docker build CoreWebApiTest/ -t $CI_REGISTRY_IMAGE
     - docker images
     - echo "### PUSH DOCKER FILE TO GITHUB"
@@ -77,10 +79,10 @@ Deploy:
     - echo "### Create Registry Secret"
     - kubectl create secret docker-registry $CI_PROJECT_NAME-$CI_PIPELINE_ID --docker-server=$CI_REGISTRY --docker-username=$CI_REGISTRY_USER --docker-password=$CI_REGISTRY_PASSWORD --docker-email=$GITLAB_USER_EMAIL -n $PROJECT_NAMESPACE
     - echo "### UPDATE KUBERNETES MANIFEST FILES WITH PROJECT VARIABLES"
-    - sed -i "s/__CI_JOB_ID__/${CI_JOB_ID}/" manifest/corewebapi-pod.yml manifest/corewebapi-service.yml manifest/corewebapi-ingress.yml
-    - sed -i "s/__CI_PROJECT_NAME__/${CI_PROJECT_NAME}/" manifest/corewebapi-pod.yml manifest/corewebapi-service.yml manifest/corewebapi-ingress.yml
-    - sed -i "s/__CI_PIPELINE_ID__/${CI_PIPELINE_ID}/" manifest/corewebapi-pod.yml manifest/corewebapi-service.yml manifest/corewebapi-ingress.yml
-    - sed -i "s%__CI_REGISTRY_IMAGE__%${CI_REGISTRY_IMAGE}%" manifest/corewebapi-pod.yml
+    - sed -i "s/__CI_JOB_ID__/${CI_JOB_ID}/" kubemanifest/corewebapi-pod.yml kubemanifest/corewebapi-service.yml kubemanifest/corewebapi-ingress.yml
+    - sed -i "s/__CI_PROJECT_NAME__/${CI_PROJECT_NAME}/" kubemanifest/corewebapi-pod.yml kubemanifest/corewebapi-service.yml kubemanifest/corewebapi-ingress.yml
+    - sed -i "s/__CI_PIPELINE_ID__/${CI_PIPELINE_ID}/" kubemanifest/corewebapi-pod.yml kubemanifest/corewebapi-service.yml kubemanifest/corewebapi-ingress.yml
+    - sed -i "s%__CI_REGISTRY_IMAGE__%${CI_REGISTRY_IMAGE}%" kubemanifest/corewebapi-pod.yml
     - echo "### CREATE PROJECT KUBERNETES OBJECTS"
     - kubectl create -f kubemanifest/corewebapi-pod.yml -n $PROJECT_NAMESPACE
     - kubectl create -f kubemanifest/corewebapi-service.yml -n $PROJECT_NAMESPACE
