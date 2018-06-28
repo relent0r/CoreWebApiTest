@@ -8,7 +8,7 @@ metadata:
 spec:
   backend:
     serviceName: __CI_PROJECT_NAME__-__CI_PIPELINE_ID__
-    servicePort: 80
+    servicePort: 8080
   http: 
   rules:
   - host: site-__CI_PIPELINE_ID__.devops.local
